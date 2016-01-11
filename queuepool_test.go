@@ -27,11 +27,7 @@ func (b *backend) Fill(queueSize int, key string) ([]interface{}, error) {
 	return f, nil
 }
 
-func (b *backend) Gotten(queueSize interface{}) error {
-	return nil
-}
-
-func (b *backend) Used(queueItem interface{}) error {
+func (b *backend) Completed(queueItem interface{}) error {
 	return nil
 }
 
