@@ -14,7 +14,6 @@ var (
 // It should be assumed that any of these methods may be called concurrently
 type QueueBackend interface {
 	Fill(queueSize int, key string) ([]interface{}, error)
-	Completed(queueItem interface{}) error
 	Exclude(queueItem interface{}) bool
 	AddQueue(key string) error
 }
@@ -58,10 +57,6 @@ func (qp *QueuePool) Get(key string) (interface{}, error) {
 	}
 
 	return 0, nil
-}
-
-func (qp *QueuePool) Completed(queueItem int64) error {
-	return qp.backend.Completed(queueItem)
 }
 
 func (qp *QueuePool) AddQueue(keys ...string) error {
