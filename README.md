@@ -1,2 +1,2 @@
 # queue-pool
-Queue pooling for synchronised access to multiple, insecting lists
+Queue pooling for synchronised access to multiple, intersecting lists
