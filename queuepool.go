@@ -37,26 +37,22 @@ func NewQueuePool(queueSize int, backend QueueBackend) *QueuePool {
 	}
 }
 
-func (qp *QueuePool) Get(key string) (interface{}, error) {
-	queue, e := qp.getQueue(key)
-	if e != nil {
-		return 0, e
-	}
+func (qp *QueuePool) Get(key string) (queueRecord interface{}, e error) {
+	var queue chan interface{}
+	queue, e = qp.getQueue(key)
 
-	for {
+	for queueRecord == nil && e == nil {
 		select {
-		case queueRecord := <-queue:
-			if !qp.backend.Exclude(queueRecord) {
-				return queueRecord, nil
+		case qr := <-queue:
+			if !qp.backend.Exclude(qr) {
+				queueRecord = qr
 			}
 		default:
-			if _, e := qp.fillQueue(key, queue); e != nil {
-				return 0, e
-			}
+			e = qp.fillQueue(key, queue)
 		}
 	}
 
-	return 0, nil
+	return queueRecord, e
 }
 
 func (qp *QueuePool) AddQueue(keys ...string) error {
@@ -81,30 +77,28 @@ func (qp *QueuePool) getQueue(key string) (chan interface{}, error) {
 	return buf, nil
 }
 
-func (qp *QueuePool) fillQueue(key string, buf chan interface{}) (int, error) {
+// Called to refill a queue, this must not be called unless a queue is empty
+func (qp *QueuePool) fillQueue(key string, buf chan interface{}) error {
 	requestTime := time.Now()
 	qp.fillQueueMutex.Lock()
 	defer qp.fillQueueMutex.Unlock()
-	loaded := 0
+
 	if !requestTime.After(qp.queueLastFill[key]) {
-		return 0, nil
+		return nil
 	}
 
 	items, e := qp.backend.Fill(qp.queueSize, key)
 	if e != nil {
-		return 0, e
+		return e
+	} else if l := len(items); l == 0 {
+		return QueueEmpty
+	} else if l > qp.queueSize {
+		items = items[:qp.queueSize]
 	}
 
-	// As the current 'length' of a channel cannot be checked,
-	// bail when the channel is full
 	for _, item := range items {
-		select {
-		case buf <- item:
-			loaded++
-		default:
-			return loaded, nil
-		}
+		buf <- item
 	}
 
-	return loaded, nil
+	return nil
 }
