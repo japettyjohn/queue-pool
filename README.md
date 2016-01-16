@@ -4,4 +4,5 @@
 
 queue-pool was made originally for multiple buffered queues where records 
 may be shared between queues but one record could only be provided once
-by any given queue.
+by any given queue. This can still be done, but that a record is only
+provided once is dependent on your use.
