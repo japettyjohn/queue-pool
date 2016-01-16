@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	// Used whenever a queue cannot be filled
+	// ErrQueueEmpty when queue cannot be filled
 	ErrQueueEmpty = errors.New("Queue is empty.")
 
-	// Used when a key has not been added
+	// ErrInvalidKey when a key has not been added
 	ErrInvalidKey = errors.New("Invalid key.")
 )
 
@@ -43,7 +43,7 @@ type QueuePool struct {
 	backend        QueueBackend
 }
 
-// Provide the number of items to buffer per queue and QueueBackend implementation
+// NewQueuePool requirse the number of items to buffer per queue and QueueBackend implementation.
 func NewQueuePool(queueSize int, backend QueueBackend) *QueuePool {
 	return &QueuePool{
 		queueSize:     queueSize,
@@ -72,7 +72,7 @@ func (qp *QueuePool) Get(key string) (queueRecord interface{}, e error) {
 	return queueRecord, e
 }
 
-// Add a one or more queues to the pool. AddQueue(key) must
+// AddQueue to insert additional queue keys. AddQueue(key) must
 // be called before using Get(key).
 func (qp *QueuePool) AddQueue(keys ...string) error {
 	qp.queueMutex.Lock()
