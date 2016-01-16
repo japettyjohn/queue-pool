@@ -1,2 +1,7 @@
-# queue-pool
-Queue pooling for synchronised access to multiple, intersecting lists
+# queue-pool - Pooling for synchronised access to multiple buffered queued.
+
+[![GoDoc](https://godoc.org/github.com/japettyjohn/queue-pool?status.svg)](https://godoc.org/github.com/japettyjohn/queue-pool)
+
+queue-pool was made originally for multiple buffered queues where records 
+may be shared between queues but one record could only be provided once
+by any given queue.
