@@ -7,18 +7,33 @@ import (
 )
 
 var (
-	QueueEmpty = errors.New("Queue is empty.")
-	InvalidKey = errors.New("Invalid key.")
+	// Used whenever a queue cannot be filled
+	ErrQueueEmpty = errors.New("Queue is empty.")
+
+	// Used when a key has not been added
+	ErrInvalidKey = errors.New("Invalid key.")
 )
 
-// It should be assumed that any of these methods may be called concurrently
+// QueueBackend is used to provide data to the QueuePool i.e.
+// running a query against a database. See queuepool_test.go
+// for a simplistic example. Also expect that all methods of
+// this may be called concurrently.
 type QueueBackend interface {
+	// Provide queueSize many items for the given queue to buffer
 	Fill(queueSize int, key string) ([]interface{}, error)
+
+	// Called during Get(), return true to exclude use of queueItem
 	Exclude(queueItem interface{}) bool
+
+	// Called when adding queues, should error minimally if queue key must adhere to backend list and is invalid
 	AddQueue(key string) error
 }
 
-// Thread safe multiqueueed queue
+// QueuePool is a thread safe multiqueued queue. While it does
+// not concern itself with how the data is provided to the queue
+// as this is covered by QueueBackend. But with enough data
+// buffered it is expected to deal with 1000s of concurrent
+// requests, likely to be throttle by the QueueBackend.
 type QueuePool struct {
 	queues         map[string]chan interface{}
 	queueSize      int
@@ -28,6 +43,7 @@ type QueuePool struct {
 	backend        QueueBackend
 }
 
+// Provide the number of items to buffer per queue and QueueBackend implementation
 func NewQueuePool(queueSize int, backend QueueBackend) *QueuePool {
 	return &QueuePool{
 		queueSize:     queueSize,
@@ -37,6 +53,7 @@ func NewQueuePool(queueSize int, backend QueueBackend) *QueuePool {
 	}
 }
 
+// Get a record from the given queue, error if queue is empty or key is invalid.
 func (qp *QueuePool) Get(key string) (queueRecord interface{}, e error) {
 	var queue chan interface{}
 	queue, e = qp.getQueue(key)
@@ -55,6 +72,8 @@ func (qp *QueuePool) Get(key string) (queueRecord interface{}, e error) {
 	return queueRecord, e
 }
 
+// Add a one or more queues to the pool. AddQueue(key) must
+// be called before using Get(key).
 func (qp *QueuePool) AddQueue(keys ...string) error {
 	qp.queueMutex.Lock()
 	defer qp.queueMutex.Unlock()
@@ -72,7 +91,7 @@ func (qp *QueuePool) getQueue(key string) (chan interface{}, error) {
 	defer qp.queueMutex.RUnlock()
 	buf, ok := qp.queues[key]
 	if !ok {
-		return nil, InvalidKey
+		return nil, ErrInvalidKey
 	}
 	return buf, nil
 }
@@ -91,7 +110,7 @@ func (qp *QueuePool) fillQueue(key string, buf chan interface{}) error {
 	if e != nil {
 		return e
 	} else if l := len(items); l == 0 {
-		return QueueEmpty
+		return ErrQueueEmpty
 	} else if l > qp.queueSize {
 		items = items[:qp.queueSize]
 	}
