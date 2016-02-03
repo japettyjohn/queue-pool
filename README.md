@@ -1,5 +1,6 @@
 # queue-pool - Pooling for synchronised access to multiple buffered queued.
 
+[![Build Status](https://drone.io/github.com/japettyjohn/queue-pool/status.png)](https://drone.io/github.com/japettyjohn/queue-pool/latest)
 [![GoDoc](https://godoc.org/github.com/japettyjohn/queue-pool?status.svg)](https://godoc.org/github.com/japettyjohn/queue-pool)
 
 queue-pool was made originally for multiple buffered queues where records 
